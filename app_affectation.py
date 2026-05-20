@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 
@@ -11,97 +10,88 @@ cotation = pd.read_excel("cotations_bilan.xlsx", engine="openpyxl")
 matching = pd.read_excel("ergo_matching_3.1.xlsx", engine="openpyxl")
 
 # -------------------------
-# STRUCTURE MATCHING (COMME HTML)
+# STRUCTURE MATCHING
 # -------------------------
 # lignes = postes
 # colonnes = personnes
 
-postes = matching.iloc[:,0].astype(str)
+postes = matching.iloc[:, 0].astype(str)
 matching = matching.set_index(matching.columns[0])
-
 personnes = list(matching.columns)
 
 # -------------------------
 # CAPACITÉS
 # -------------------------
 capacite = cotation.set_index("Poste")["nombre de places"].to_dict()
-
 places_restantes = capacite.copy()
 
 # -------------------------
-# FONCTION COMPATIBILITÉ (clé)
+# FONCTIONS MÉTIER
 # -------------------------
-def get_postes_compatibles(personne):
-    compat = []
-    for i, poste in enumerate(postes):
-        if poste in places_restantes and places_restantes[poste] > 0:
-            if matching.loc[poste, personne] == 0:
-                compat.append(poste)
-    return compat
+def get_postes_possibles(personne):
+    return [
+        poste for poste in postes
+        if matching.loc[poste, personne] == 0
+    ]
 
-# -------------------------
-# TRI DES PERSONNES (priorité)
-# -------------------------
-nb_options = {}
+# nombre d’options
+nb_options = {p: len(get_postes_possibles(p)) for p in personnes}
 
-for p in personnes:
-    nb_options[p] = sum(
-        matching.loc[poste, p] == 0 for poste in postes
-    )
-
+# tri par difficulté (moins d'options en premier)
 personnes_tries = sorted(personnes, key=lambda x: nb_options[x])
 
 # -------------------------
-# AFFECTATION AVEC "SWAP" (comme HTML)
+# AFFECTATION AVEC RÉORGANISATION
 # -------------------------
 affectation = {}
 non_affectes = []
 
 for p in personnes_tries:
 
-    compatibles = get_postes_compatibles(p)
+    compatibles = [
+        poste for poste in postes
+        if matching.loc[poste, p] == 0 and places_restantes.get(poste, 0) > 0
+    ]
 
-    # ✅ cas simple
+    # ✅ affectation simple
     if compatibles:
         poste = compatibles[0]
         affectation[p] = poste
         places_restantes[poste] -= 1
 
     else:
-        # 🔥 tentative de libération (logique HTML)
-        all_compat = [
-            poste for poste in postes
-            if matching.loc[poste, p] == 0
-        ]
+        # 🔥 tentative de "swap"
+        all_compat = get_postes_possibles(p)
 
         placé = False
 
         for poste in all_compat:
-            # trouver occupant actuel
+
             occupantes = [
-                person for person, pos in affectation.items()
+                pers for pers, pos in affectation.items()
                 if pos == poste
             ]
 
             for occ in occupantes:
-                # essayer de déplacer l'occupant
+
                 alternatives = [
                     alt for alt in postes
                     if (
-                        alt != poste and
-                        places_restantes.get(alt,0) > 0 and
-                        matching.loc[alt, occ] == 0
+                        alt != poste
+                        and places_restantes.get(alt, 0) > 0
+                        and matching.loc[alt, occ] == 0
                     )
                 ]
 
                 if alternatives:
-                    # ✅ déplacer
                     new_poste = alternatives[0]
+
+                    # déplacer occupant
                     affectation[occ] = new_poste
                     places_restantes[new_poste] -= 1
                     places_restantes[poste] += 1
 
-                    # ✅ placer la personne difficile
+                    # placer personne difficile
                     affectation[p] = poste
                     places_restantes[poste] -= 1
 
@@ -116,26 +106,55 @@ for p in personnes_tries:
             non_affectes.append(p)
 
 # -------------------------
-# RESULTATS
+# DATAFRAME RESULTATS
 # -------------------------
 df = pd.DataFrame.from_dict(affectation, orient="index", columns=["poste"])
 df["nb_options"] = df.index.map(nb_options)
 
+# ✅ IMPORTANT : ajouter les postes possibles
+df["postes_possibles_list"] = df.index.map(get_postes_possibles)
+df["nb_postes_possibles"] = df["postes_possibles_list"].apply(len)
+
+# version texte (facultative)
+df["postes_possibles"] = df["postes_possibles_list"].apply(lambda x: " | ".join(x))
+
 # -------------------------
-# DISPLAY
+# AFFICHAGE
 # -------------------------
-st.subheader("📊 Résultats")
+st.subheader("📊 Résultats globaux")
 
 st.write("✅ Affectés :", df["poste"].notna().sum())
 st.write("❌ Non affectés :", df["poste"].isna().sum())
 
+# -------------------------
+# CAS CRITIQUES
+# -------------------------
 st.subheader("⚠️ Cas critiques (≤2 options)")
-st.dataframe(df[df["nb_options"] <= 2])
 
+critique = df[df["nb_postes_possibles"] <= 2]
+
+st.dataframe(critique[["nb_postes_possibles", "postes_possibles"]])
+
+# -------------------------
+# NON AFFECTÉS (DETAIL CLAIR)
+# -------------------------
 st.subheader("❌ Non affectés")
-st.dataframe(df[df["poste"].isna()])
+
+for personne, row in df[df["poste"].isna()].iterrows():
+    st.write("👤", personne)
+    st.write("Nb options :", row["nb_postes_possibles"])
+    st.write("Postes possibles :")
+
+    for p in row["postes_possibles_list"]:
+        st.write("➡️", p)
+
+    st.write("---")
 
 # -------------------------
-# DEBUG optionnel
+# ANALYSE
 # -------------------------
-# st.write(df.head())
+st.subheader("🧠 Indicateurs")
+
+st.write("Taux d'affectation :", round(df["poste"].notna().mean() * 100, 1), "%")
+st.write("Personnes avec ≤2 options :", (df["nb_postes_possibles"] <= 2).sum())
+st.write("Personnes sans solution :", (df["nb_postes_possibles"] == 0).sum())
