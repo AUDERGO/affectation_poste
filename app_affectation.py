@@ -127,6 +127,35 @@ st.write("✅ Affectés :", df["poste"].notna().sum())
 st.write("❌ Non affectés :", df["poste"].isna().sum())
 
 # -------------------------
+# TABLEAU COMPLET DES AFFECTÉS
+# -------------------------
+st.subheader("✅ Personnes affectées")
+
+df_affectes = df[df["poste"].notna()]
+
+df_affectes_display = df_affectes.reset_index()
+
+st.dataframe(
+    df_affectes_display.rename(columns={
+        "index": "Personne",
+        "poste": "Poste affecté",
+        "nb_postes_possibles": "Nb options"
+    })
+)
+
+
+# -------------------------
+# POUR VOIR LES GROS POSTES
+# -------------------------
+st.subheader("🏭 Occupation des postes")
+
+occupation = df_affectes["poste"].value_counts().reset_index()
+occupation.columns = ["Poste", "Nb personnes"]
+
+st.dataframe(occupation)
+
+
+# -------------------------
 # CAS CRITIQUES
 # -------------------------
 st.subheader("⚠️ Cas critiques (≤2 options)")
