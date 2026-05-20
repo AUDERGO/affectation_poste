@@ -231,3 +231,81 @@ analyse.columns = ["Cause", "Nb personnes"]
 
 st.dataframe(analyse)
 
+# -------------------------
+# SIMULATION CAPACITÉ
+# -------------------------
+st.subheader("🔮 Simulation capacité")
+
+poste_test = st.selectbox("Choisir un poste à augmenter", list(capacite.keys()))
+ajout = st.slider("Nombre de places à ajouter", 0, 10, 2)
+
+# copier capacité
+capacite_sim = capacite.copy()
+capacite_sim[poste_test] += ajout
+
+# relancer affectation simple
+places_restantes_sim = capacite_sim.copy()
+affectation_sim = {}
+
+for p in personnes_tries:
+    compatibles = [
+        poste for poste in postes
+        if matching.loc[poste, p] == 0 and places_restantes_sim.get(poste, 0) > 0
+    ]
+
+    if compatibles:
+        affectation_sim[p] = compatibles[0]
+        places_restantes_sim[compatibles[0]] -= 1
+    else:
+        affectation_sim[p] = None
+
+# comparer résultats
+avant = df["poste"].notna().sum()
+apres = sum(v is not None for v in affectation_sim.values())
+
+gain = apres - avant
+
+st.write(f"✅ Personnes affectées avant : {avant}")
+st.write(f"✅ Personnes affectées après : {apres}")
+st.write(f"🚀 Gain : +{gain} personnes")
+
+# -------------------------# ---------------- -------------------------
+st.subheader("🧍 Simulation ergonomique")
+
+poste_ergo = st.selectbox("Poste à assouplir", postes)
+nb_relax = st.slider("Nb de personnes à rendre compatibles", 0, 20, 5)
+
+# copier matching
+matching_sim = matching.copy()
+
+# sélectionner personnes non affectées
+non_aff = df[df["poste"].isna()].index.tolist()[:nb_relax]
+
+# rendre compatible artificiellement
+for pers in non_aff:
+    if poste_ergo in matching_sim.index:
+        matching_sim.loc[poste_ergo, pers] = 0
+
+# relancer affectation simple
+places_restantes_sim = capacite.copy()
+affectation_sim = {}
+
+for p in personnes_tries:
+    compatibles = [
+        poste for poste in postes
+        if matching_sim.loc[poste, p] == 0 and places_restantes_sim.get(poste, 0) > 0
+    ]
+
+    if compatibles:
+        affectation_sim[p] = compatibles[0]
+        places_restantes_sim[compatibles[0]] -= 1
+    else:
+        affectation_sim[p] = None
+
+# comparaison
+apres = sum(v is not None for v in affectation_sim.values())
+
+st.write(f"🚀 Personnes sauvées : +{apres - avant}")
+# SIMULATION CONTRAINTE
+
+
