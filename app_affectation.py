@@ -192,20 +192,6 @@ critique = df[df["nb_postes_possibles"] <= 2]
 
 st.dataframe(critique[["nb_postes_possibles", "postes_possibles"]])
 
-# -------------------------
-# NON AFFECTÉS (DETAIL CLAIR)
-# -------------------------
-st.subheader("❌ Non affectés")
-
-for personne, row in df[df["poste"].isna()].iterrows():
-    st.write("👤", personne)
-    st.write("Nb options :", row["nb_postes_possibles"])
-    st.write("Postes possibles :")
-
-    for p in row["postes_possibles_list"]:
-        st.write("➡️", p)
-
-    st.write("---")
 
 # -------------------------
 # ANALYSE
