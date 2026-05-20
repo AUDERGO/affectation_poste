@@ -144,17 +144,43 @@ st.dataframe(
     })
 )
 
-
 # -------------------------
-# POUR VOIR LES GROS POSTES
+# OCCUPATION AVEC CAPACITÉ
 # -------------------------
 st.subheader("🏭 Occupation des postes")
 
 occupation = df_affectes["poste"].value_counts().reset_index()
 occupation.columns = ["Poste", "Nb personnes"]
 
-st.dataframe(occupation)
+occupation["Capacité"] = occupation["Poste"].map(capacite)
+occupation["Capacité"] = occupation["Capacité"].fillna(0)
 
+occupation["Reste"] = occupation["Capacité"] - occupation["Nb personnes"]
+
+# ✅ ajouter postes absents AVANT affichage
+for p in capacite:
+    if p not in occupation["Poste"].values:
+        occupation = pd.concat([
+            occupation,
+            pd.DataFrame({
+                "Poste": [p],
+                "Nb personnes": [0],
+                "Capacité": [capacite[p]],
+                "Reste": [capacite[p]]
+            })
+        ])
+
+occupation = occupation.sort_values("Nb personnes", ascending=False)
+
+def couleur_reste(val):
+    if val < 0:
+        return "background-color: red"
+    elif val == 0:
+        return "background-color: orange"
+    else:
+        return "background-color: green"
+
+st.dataframe(occupation.style.applymap(couleur_reste, subset=["Reste"]))
 
 # -------------------------
 # CAS CRITIQUES
