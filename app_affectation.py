@@ -1,80 +1,141 @@
+
 import streamlit as st
 import pandas as pd
 
 st.title("🧠 Outil d'affectation ergonomique")
 
+# -------------------------
 # IMPORT
+# -------------------------
 cotation = pd.read_excel("cotations_bilan.xlsx", engine="openpyxl")
-restrictions = pd.read_excel("restrictions_detaillees_extract_200526.xlsx", engine="openpyxl")
 matching = pd.read_excel("ergo_matching_3.1.xlsx", engine="openpyxl")
 
-# nettoyage
-cotation = cotation.rename(columns={"Poste": "poste"})
-restrictions = restrictions.rename(columns={"Matricule": "personne"})
+# -------------------------
+# STRUCTURE MATCHING (COMME HTML)
+# -------------------------
+# lignes = postes
+# colonnes = personnes
 
-matching = matching.rename(columns={"index": "personne"})
-matching = matching.set_index("personne")
+postes = matching.iloc[:,0].astype(str)
+matching = matching.set_index(matching.columns[0])
 
-# capacité postes
-capacite = cotation.set_index("poste")["nombre de places"].to_dict()
+personnes = list(matching.columns)
 
-matching = matching.rename(columns={"index": "poste"})
-matching = matching.set_index("poste")
+# -------------------------
+# CAPACITÉS
+# -------------------------
+capacite = cotation.set_index("Poste")["nombre de places"].to_dict()
 
-# ✅ garder uniquement colonnes personnes
-matching = matching.select_dtypes(include=['number'])
-
-# ✅ TRANSPOSE
-matching = matching.T
-
-# ✅ maintenant :
-# lignes = personnes
-# colonnes = postes
-
-# ✅ compatibilité réelle
-compatibilite = (matching == 0)
-
-# ✅ transformer en 1/0
-compatibilite = compatibilite.astype(int)
-
-nb_options = compatibilite.sum(axis=1)
-personnes_tries = nb_options.sort_values().index.tolist()
-
-# affectation
-affectation = {}
 places_restantes = capacite.copy()
 
-for p in personnes_tries:
-    postes_possibles = compatibilite.columns[compatibilite.loc[p] == 1]
+# -------------------------
+# FONCTION COMPATIBILITÉ (clé)
+# -------------------------
+def get_postes_compatibles(personne):
+    compat = []
+    for i, poste in enumerate(postes):
+        if poste in places_restantes and places_restantes[poste] > 0:
+            if matching.loc[poste, personne] == 0:
+                compat.append(poste)
+    return compat
 
-    postes_possibles = sorted(
-        postes_possibles,
-        key=lambda x: places_restantes.get(x, 0),
-        reverse=True
+# -------------------------
+# TRI DES PERSONNES (priorité)
+# -------------------------
+nb_options = {}
+
+for p in personnes:
+    nb_options[p] = sum(
+        matching.loc[poste, p] == 0 for poste in postes
     )
 
-    affecte = False
-    for poste in postes_possibles:
-        if places_restantes.get(poste, 0) > 0:
-            affectation[p] = poste
-            places_restantes[poste] -= 1
-            affecte = True
-            break
+personnes_tries = sorted(personnes, key=lambda x: nb_options[x])
 
-    if not affecte:
-        affectation[p] = None
+# -------------------------
+# AFFECTATION AVEC "SWAP" (comme HTML)
+# -------------------------
+affectation = {}
+non_affectes = []
 
-df_result = pd.DataFrame.from_dict(affectation, orient="index", columns=["poste"])
-df_result["nb_options"] = nb_options
+for p in personnes_tries:
 
-# UI
-st.subheader("Résultats")
+    compatibles = get_postes_compatibles(p)
 
-st.write("✅ Affectés :", df_result["poste"].notna().sum())
-st.write("❌ Non affectés :", df_result["poste"].isna().sum())
+    # ✅ cas simple
+    if compatibles:
+        poste = compatibles[0]
+        affectation[p] = poste
+        places_restantes[poste] -= 1
 
-st.subheader("Personnes critiques")
-st.dataframe(df_result[df_result["nb_options"] <= 2])
+    else:
+        # 🔥 tentative de libération (logique HTML)
+        all_compat = [
+            poste for poste in postes
+            if matching.loc[poste, p] == 0
+        ]
 
-st.subheader("Non affectés")
-st.dataframe(df_result[df_result["poste"].isna()])
+        placé = False
+
+        for poste in all_compat:
+            # trouver occupant actuel
+            occupantes = [
+                person for person, pos in affectation.items()
+                if pos == poste
+            ]
+
+            for occ in occupantes:
+                # essayer de déplacer l'occupant
+                alternatives = [
+                    alt for alt in postes
+                    if (
+                        alt != poste and
+                        places_restantes.get(alt,0) > 0 and
+                        matching.loc[alt, occ] == 0
+                    )
+                ]
+
+                if alternatives:
+                    # ✅ déplacer
+                    new_poste = alternatives[0]
+                    affectation[occ] = new_poste
+                    places_restantes[new_poste] -= 1
+                    places_restantes[poste] += 1
+
+                    # ✅ placer la personne difficile
+                    affectation[p] = poste
+                    places_restantes[poste] -= 1
+
+                    placé = True
+                    break
+
+            if placé:
+                break
+
+        if not placé:
+            affectation[p] = None
+            non_affectes.append(p)
+
+# -------------------------
+# RESULTATS
+# -------------------------
+df = pd.DataFrame.from_dict(affectation, orient="index", columns=["poste"])
+df["nb_options"] = df.index.map(nb_options)
+
+# -------------------------
+# DISPLAY
+# -------------------------
+st.subheader("📊 Résultats")
+
+st.write("✅ Affectés :", df["poste"].notna().sum())
+st.write("❌ Non affectés :", df["poste"].isna().sum())
+
+st.subheader("⚠️ Cas critiques (≤2 options)")
+st.dataframe(df[df["nb_options"] <= 2])
+
+st.subheader("❌ Non affectés")
+st.dataframe(df[df["poste"].isna()])
+
+# -------------------------
+# DEBUG optionnel
+# -------------------------
+# st.write(df.head())
