@@ -113,9 +113,28 @@ df = pd.DataFrame.from_dict(affectation, orient="index", columns=["poste"])
 # ✅ IMPORTANT : ajouter les postes possibles
 df["postes_possibles_list"] = df.index.map(get_postes_possibles)
 df["nb_postes_possibles"] = df["postes_possibles_list"].apply(len)
-
-# version texte (facultative)
 df["postes_possibles"] = df["postes_possibles_list"].apply(lambda x: " | ".join(x))
+
+# -------------------------
+# DIAGNOSTIC DES NON AFFECTÉS
+# -------------------------
+def diagnostiquer(personne):
+    postes_possibles = get_postes_possibles(personne)
+
+    if len(postes_possibles) == 0:
+        return "❌ Aucun poste compatible"
+
+    postes_disponibles = [
+        poste for poste in postes_possibles
+        if capacite.get(poste, 0) > 0
+    ]
+
+    if len(postes_disponibles) == 0:
+        return "⚠️ Postes compatibles saturés"
+
+    return "🔄 Conflit d'affectation"
+
+df["diagnostic"] = df.index.map(diagnostiquer)
 
 # -------------------------
 # AFFICHAGE
@@ -201,3 +220,14 @@ st.subheader("🧠 Indicateurs")
 st.write("Taux d'affectation :", round(df["poste"].notna().mean() * 100, 1), "%")
 st.write("Personnes avec ≤2 options :", (df["nb_postes_possibles"] <= 2).sum())
 st.write("Personnes sans solution :", (df["nb_postes_possibles"] == 0).sum())
+
+# -------------------------
+# ANALYSE DES NON AFFECTÉS
+# -------------------------
+st.subheader("🧠 Analyse des non affectés")
+
+analyse = df[df["poste"].isna()]["diagnostic"].value_counts().reset_index()
+analyse.columns = ["Cause", "Nb personnes"]
+
+st.dataframe(analyse)
+
