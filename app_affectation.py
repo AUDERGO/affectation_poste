@@ -109,7 +109,6 @@ for p in personnes_tries:
 # DATAFRAME RESULTATS
 # -------------------------
 df = pd.DataFrame.from_dict(affectation, orient="index", columns=["poste"])
-df["nb_options"] = df.index.map(nb_options)
 
 # ✅ IMPORTANT : ajouter les postes possibles
 df["postes_possibles_list"] = df.index.map(get_postes_possibles)
@@ -136,10 +135,12 @@ df_affectes = df[df["poste"].notna()]
 df_affectes_display = df_affectes.reset_index()
 
 st.dataframe(
-    df_affectes_display.rename(columns={
+    df_affectes_display[["index", "poste", "nb_postes_possibles", "postes_possibles"]]
+    .rename(columns={
         "index": "Personne",
         "poste": "Poste affecté",
-        "nb_postes_possibles": "Nb options"
+        "nb_postes_possibles": "Nb options",
+        "postes_possibles": "Postes possibles"
     })
 )
 
