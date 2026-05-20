@@ -18,8 +18,24 @@ matching = matching.set_index("personne")
 # capacité postes
 capacite = cotation.set_index("poste")["nombre de places"].to_dict()
 
-# compatibilité
-compatibilite = (matching <= 1).astype(int)
+matching = matching.rename(columns={"index": "poste"})
+matching = matching.set_index("poste")
+
+# ✅ garder uniquement colonnes personnes
+matching = matching.select_dtypes(include=['number'])
+
+# ✅ TRANSPOSE
+matching = matching.T
+
+# ✅ maintenant :
+# lignes = personnes
+# colonnes = postes
+
+# ✅ compatibilité réelle
+compatibilite = (matching == 0)
+
+# ✅ transformer en 1/0
+compatibilite = compatibilite.astype(int)
 
 nb_options = compatibilite.sum(axis=1)
 personnes_tries = nb_options.sort_values().index.tolist()
