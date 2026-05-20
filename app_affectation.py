@@ -19,7 +19,8 @@ matching = matching.set_index("personne")
 capacite = cotation.set_index("poste")["nombre de places"].to_dict()
 
 # compatibilité
-compatibilite = (matching == 0).astype(int)
+compatibilite = (matching <= 1).astype(int)
+``
 
 nb_options = compatibilite.sum(axis=1)
 personnes_tries = nb_options.sort_values().index.tolist()
