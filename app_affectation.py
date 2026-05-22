@@ -328,3 +328,10 @@ results = [run_simulation() for _ in range(20)]
 
 st.write("📊 Test robustesse :", results)
 st.write("Max trouvé :", max(results))
+
+nb_sans_solution = (df["nb_postes_possibles"] == 0).sum()
+nb_non_affectes = df["poste"].isna().sum()
+
+st.write("Sans solution théorique :", nb_sans_solution)
+st.write("Non affectés :", nb_non_affectes)
+st.write("Marge améliorable :", nb_non_affectes - nb_sans_solution)
