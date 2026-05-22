@@ -299,39 +299,65 @@ apres = sum(v is not None for v in affectation_sim.values())
 st.write(f"🚀 Personnes sauvées : +{apres - avant}")
 # SIMULATION CONTRAINTE
 
-import random
-
-def run_simulation():
-    personnes_shuffle = personnes.copy()
-    random.shuffle(personnes_shuffle)
-
-    places_restantes_sim = capacite.copy()
-    affectation_sim = {}
-
-    for p in personnes_shuffle:
-        compatibles = [
-            poste for poste in postes
-            if matching.loc[poste, p] == 0 and places_restantes_sim.get(poste, 0) > 0
-        ]
-
-        if compatibles:
-            poste = compatibles[0]
-            affectation_sim[p] = poste
-            places_restantes_sim[poste] -= 1
-        else:
-            affectation_sim[p] = None
-
-    return sum(v is not None for v in affectation_sim.values())
-
-# lancer plusieurs fois
-results = [run_simulation() for _ in range(20)]
-
-st.write("📊 Test robustesse :", results)
-st.write("Max trouvé :", max(results))
-
-nb_sans_solution = (df["nb_postes_possibles"] == 0).sum()
-nb_non_affectes = df["poste"].isna().sum()
-
 st.write("Sans solution théorique :", nb_sans_solution)
 st.write("Non affectés :", nb_non_affectes)
 st.write("Marge améliorable :", nb_non_affectes - nb_sans_solution)
+
+# -------------------------
+# PRIORISATION ERGONOMIQUE
+# -------------------------
+st.subheader("🧍 Classement des postes à assouplir (contraintes)")
+
+nb_personnes_test = st.slider("Nb de personnes à tester", 1, 20, 5)
+
+resultats_ergo = []
+
+# personnes non affectées
+non_aff = df[df["poste"].isna()].index.tolist()
+
+for poste_test in postes:
+
+    # copie matching
+    matching_sim = matching.copy()
+
+    # on prend un échantillon de non affectés
+    personnes_test = non_aff[:nb_personnes_test]
+
+    # rendre compatibles artificiellement
+    for p in personnes_test:
+        if poste_test in matching_sim.index:
+            matching_sim.loc[poste_test, p] = 0
+
+    # relancer affectation simple
+    places_restantes_sim = capacite.copy()
+    affectation_sim = {}
+
+    for p in personnes_tries:
+        compatibles = [
+            poste for poste in postes
+            if matching_sim.loc[poste, p] == 0 and places_restantes_sim.get(poste, 0) > 0
+        ]
+
+        if compatibles:
+            affectation_sim[p] = compatibles[0]
+            places_restantes_sim[compatibles[0]] -= 1
+        else:
+            affectation_sim[p] = None
+
+    # calcul gain
+    nb_avant = df["poste"].notna().sum()
+    nb_apres = sum(v is not None for v in affectation_sim.values())
+
+    gain = nb_apres - nb_avant
+
+    resultats_ergo.append({
+        "Poste": poste_test,
+        "Gain personnes": gain
+    })
+
+df_ergo = pd.DataFrame(resultats_ergo)
+
+df_ergo = df_ergo.sort_values("Gain personnes", ascending=False)
+
+st.dataframe(df_ergo)
+
