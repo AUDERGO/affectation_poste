@@ -190,9 +190,7 @@ for p in capacite:
         ])
 
 occupation["Reste"] = occupation["Capacité"] - occupation["Nb personnes"]
-
-occupation = occupation.sort_values("Nb personnes", ascending=False)
-
+occupation = occupation.sort_values("Nb personnes", ascending=False).reset_index(drop=True)
 st.dataframe(occupation)
 
 # -------------------------
