@@ -299,6 +299,9 @@ apres = sum(v is not None for v in affectation_sim.values())
 st.write(f"🚀 Personnes sauvées : +{apres - avant}")
 # SIMULATION CONTRAINTE
 
+nb_sans_solution = (df["nb_postes_possibles"] == 0).sum()
+nb_non_affectes = df["poste"].isna().sum()
+
 st.write("Sans solution théorique :", nb_sans_solution)
 st.write("Non affectés :", nb_non_affectes)
 st.write("Marge améliorable :", nb_non_affectes - nb_sans_solution)
