@@ -299,4 +299,32 @@ apres = sum(v is not None for v in affectation_sim.values())
 st.write(f"🚀 Personnes sauvées : +{apres - avant}")
 # SIMULATION CONTRAINTE
 
+import random
 
+def run_simulation():
+    personnes_shuffle = personnes.copy()
+    random.shuffle(personnes_shuffle)
+
+    places_restantes_sim = capacite.copy()
+    affectation_sim = {}
+
+    for p in personnes_shuffle:
+        compatibles = [
+            poste for poste in postes
+            if matching.loc[poste, p] == 0 and places_restantes_sim.get(poste, 0) > 0
+        ]
+
+        if compatibles:
+            poste = compatibles[0]
+            affectation_sim[p] = poste
+            places_restantes_sim[poste] -= 1
+        else:
+            affectation_sim[p] = None
+
+    return sum(v is not None for v in affectation_sim.values())
+
+# lancer plusieurs fois
+results = [run_simulation() for _ in range(20)]
+
+st.write("📊 Test robustesse :", results)
+st.write("Max trouvé :", max(results))
