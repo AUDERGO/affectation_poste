@@ -239,7 +239,10 @@ nb_personnes_test = st.slider("Nb de personnes à tester", 1, 20, 5)
 resultats_ergo = []
 
 # personnes non affectées
-non_aff = df[df["poste"].isna()].index.tolist()
+non_aff = df[
+    (df["poste"].isna()) &
+    (df["diagnostic"] == "🔄 Conflit d'affectation")
+].index.tolist()
 
 for poste_test in postes:
 
@@ -247,7 +250,8 @@ for poste_test in postes:
     matching_sim = matching.copy()
 
     # on prend un échantillon de non affectés
-    personnes_test = non_aff[:nb_personnes_test]
+    import random
+    personnes_test = random.sample(non_aff, min(nb_personnes_test, len(non_aff)))
 
     # rendre compatibles artificiellement
     for p in personnes_test:
@@ -280,6 +284,9 @@ for poste_test in postes:
         "Poste": poste_test,
         "Gain personnes": gain
     })
+
+st.write("Nb personnes testées :", len(personnes_test))
+st.write("Nb personnes en conflit :", len(non_aff))
 
 df_ergo = pd.DataFrame(resultats_ergo)
 
