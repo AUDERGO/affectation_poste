@@ -225,10 +225,6 @@ st.dataframe(analyse)
 nb_sans_solution = (df["nb_postes_possibles"] == 0).sum()
 nb_non_affectes = df["poste"].isna().sum()
 
-st.write("Sans solution théorique :", nb_sans_solution)
-st.write("Non affectés :", nb_non_affectes)
-st.write("Marge améliorable :", nb_non_affectes - nb_sans_solution)
-
 # -------------------------
 # PRIORISATION ERGONOMIQUE
 # -------------------------
@@ -293,3 +289,7 @@ df_ergo = pd.DataFrame(resultats_ergo)
 df_ergo = df_ergo.sort_values("Gain personnes", ascending=False)
 
 st.dataframe(df_ergo)
+
+st.write("Sans solution théorique :", nb_sans_solution)
+st.write("Non affectés :", nb_non_affectes)
+st.write("Marge améliorable :", nb_non_affectes - nb_sans_solution)
