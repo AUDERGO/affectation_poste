@@ -193,11 +193,11 @@ occupation = occupation.sort_values("Nb personnes", ascending=False)
 
 def couleur_reste(val):
     if val < 0:
-        return "❌ " + str(val)
+        return str(val)
     elif val == 0:
-        return "⚠️ " + str(val)
+        return str(val)
     else:
-        return "✅ " + str(val)
+        return str(val)
 
 occupation["Reste"] = occupation["Reste"].apply(couleur_reste)
 st.dataframe(occupation)
