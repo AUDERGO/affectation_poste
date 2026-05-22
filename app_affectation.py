@@ -176,7 +176,7 @@ occupation["Capacité"] = occupation["Capacité"].fillna(0)
 
 occupation["Reste"] = occupation["Capacité"] - occupation["Nb personnes"]
 
-# ✅ ajouter postes absents AVANT affichage
+# ✅ ajouter postes absents
 for p in capacite:
     if p not in occupation["Poste"].values:
         occupation = pd.concat([
@@ -189,17 +189,10 @@ for p in capacite:
             })
         ])
 
+occupation["Reste"] = occupation["Capacité"] - occupation["Nb personnes"]
+
 occupation = occupation.sort_values("Nb personnes", ascending=False)
 
-def couleur_reste(val):
-    if val < 0:
-        return str(val)
-    elif val == 0:
-        return str(val)
-    else:
-        return str(val)
-
-occupation["Reste"] = occupation["Reste"].apply(couleur_reste)
 st.dataframe(occupation)
 
 # -------------------------
