@@ -1,7 +1,12 @@
 import streamlit as st
 import pandas as pd
 
-st.title("🧠 Outil d'affectation ergonomique")
+st.title("Outil d'affectation des postes")
+
+st.write("## 📂 Charger matrice de matching")
+matrice_file = st.file_uploader("Matrice matching", type=["csv", "xlsx"])
+
+#ICI POUR LA SUITE
 
 # -------------------------
 # IMPORT
