@@ -241,7 +241,7 @@ if matrice_file is not None:
         st.download_button(
             label="📥 Télécharger le tableau en Excel",
             data=excel_occupation,
-            file_name=f"occupation_postes_{date.today()}.xlsx",
+            file_name=f"occupation_postes_{datetime.now().strftime('%Y-%m-%d')}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
