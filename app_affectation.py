@@ -4,6 +4,9 @@ import random
 
 st.title("Outil d'affectation des postes")
 
+from datetime import datetime
+file_name=f"resultats_affection_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
+
 import io
 
 def to_excel(df):
