@@ -4,6 +4,15 @@ import random
 
 st.title("Outil d'affectation des postes")
 
+import io
+
+def to_excel(df):
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=True)
+    processed_data = output.getvalue()
+    return processed_data
+
 # =========================
 # 📂 UPLOAD MATRICE
 # =========================
