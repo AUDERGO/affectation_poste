@@ -5,7 +5,6 @@ import random
 st.title("Outil d'affectation des postes")
 
 from datetime import datetime
-file_name=f"resultats_affection_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
 
 import io
 
@@ -202,7 +201,7 @@ if matrice_file is not None:
         st.download_button(
             label="📥 Télécharger le tableau en Excel",
             data=excel_data,
-            file_name=f"resultats_affection_{date.today()}.xlsx",
+            file_name=f"resultats_affection_{datetime.now().strftime('%Y-%m-%d')}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
         
