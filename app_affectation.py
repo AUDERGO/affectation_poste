@@ -19,8 +19,12 @@ if matrice_file is not None:
     else:
         matrice = pd.read_excel(matrice_file)
 
-    # ✅ remettre nom colonne
+    # ✅ IMPORTANT : doit être dans le if
     matrice = matrice.rename(columns={"index": "Poste"})
+
+    # ✅ DEBUG VISUEL (ajoute ça pour vérifier)
+    st.write("### Aperçu matrice")
+    st.dataframe(matrice.head())
 
     # ✅ STRUCTURE
     postes = matrice["Poste"].astype(str)
