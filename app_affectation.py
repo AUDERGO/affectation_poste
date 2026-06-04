@@ -195,13 +195,15 @@ if matrice_file is not None:
         # ==========================
         # TELECHARGEMENT EXCEL
         # ==========================
+
+        # AFFECTES
         
         df_export = df[df["poste"].notna()].copy()
-        
         df_export = df_export.reset_index()
+        df_export = df_export.rename(columns={"index": "Matricule"})
         
         df_export = df_export[[
-            "index",
+            "Matricule",
             "poste",
             "postes_possibles",
             "nb_postes_possibles",
@@ -216,7 +218,20 @@ if matrice_file is not None:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
+        # NON AFFECTES
+
         df_non_affectes = df[df["poste"].isna()].copy()
+        df_non_affectes = df_non_affectes.dropna(how="all")
+        df_non_affectes = df_non_affectes.reset_index()
+        df_non_affectes = df_non_affectes.rename(columns={"index": "Matricule"})
+
+        
+        df_non_affectes = df_non_affectes[[
+            "Matricule",
+            "postes_possibles",
+            "nb_postes_possibles",
+            "diagnostic"
+        ]]
 
         st.download_button(
             "📥 Télécharger les non affectés",
