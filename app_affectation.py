@@ -195,14 +195,16 @@ if matrice_file is not None:
         # ==========================
         # TELECHARGEMENT EXCEL
         # ==========================
-        df_export = df.reset_index()
+        
+        df_export = df[df["poste"].notna()].copy()
+        
+        df_export = df_export.reset_index()
         
         df_export = df_export[[
             "index",
             "poste",
             "postes_possibles",
             "nb_postes_possibles",
-            "diagnostic"
         ]]
 
         excel_data = to_excel(df_export)
@@ -213,6 +215,15 @@ if matrice_file is not None:
             file_name=f"resultats_affection_{datetime.now().strftime('%Y-%m-%d')}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
+        df_non_affectes = df[df["poste"].isna()].copy()
+
+        st.download_button(
+            "📥 Télécharger les non affectés",
+            to_excel(df_non_affectes),
+            "non_affectes.xlsx"
+        )
+
          
         # =========================
         # OCCUPATION
