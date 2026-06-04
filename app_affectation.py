@@ -245,7 +245,7 @@ if matrice_file is not None:
         # TELECHARGEMENT EXCEL
         # ==========================
         
-        df_occ_export = df_occupation.reset_index()
+        df_occ_export = occupation.copy()
         
         df_occ_export = df_occ_export[[          
             "Poste",          
