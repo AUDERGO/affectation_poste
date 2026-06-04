@@ -181,6 +181,19 @@ if matrice_file is not None:
             })
         )
 
+        # ==========================
+        # TELECHARGEMENT EXCEL
+        # ==========================
+
+        excel_data = to_excel(df)
+
+        st.download_button(
+            label="📥 Télécharger le tableau en Excel",
+            data=excel_data,
+            file_name=f"resultats_affection_{date.today()}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        
         # =========================
         # OCCUPATION
         # =========================
@@ -207,6 +220,21 @@ if matrice_file is not None:
         occupation = occupation.sort_values("Nb personnes", ascending=False).reset_index(drop=True)
         st.dataframe(occupation)
 
+
+        # ==========================
+        # TELECHARGEMENT EXCEL
+        # ==========================
+
+        excel_occupation = to_excel(df)
+
+        st.download_button(
+            label="📥 Télécharger le tableau en Excel",
+            data=excel_occupation,
+            file_name=f"occupation_postes_{date.today()}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+        
         # =========================
         # CAS CRITIQUES
         # =========================
