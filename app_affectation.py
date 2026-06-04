@@ -195,8 +195,17 @@ if matrice_file is not None:
         # ==========================
         # TELECHARGEMENT EXCEL
         # ==========================
+        df_export = df.reset_index()
+        
+        df_export = df_export[[
+            "index",
+            "poste",
+            "postes_possibles",
+            "nb_postes_possibles",
+            "diagnostic"
+        ]]
 
-        excel_data = to_excel(df)
+        excel_data = to_excel(df_export)
 
         st.download_button(
             label="📥 Télécharger le tableau en Excel",
@@ -204,7 +213,7 @@ if matrice_file is not None:
             file_name=f"resultats_affection_{datetime.now().strftime('%Y-%m-%d')}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-        
+         
         # =========================
         # OCCUPATION
         # =========================
@@ -235,12 +244,21 @@ if matrice_file is not None:
         # ==========================
         # TELECHARGEMENT EXCEL
         # ==========================
+        
+        df_occ_export = df_occupation.reset_index()
+        
+        df_occ_export = df_occ_export[[          
+            "Poste",          
+            "Nb personnes", 
+            "Capacité",
+            "Reste"
+        ]]
 
-        excel_occupation = to_excel(df)
+        excel_occ = to_excel(df_occ_export)
 
         st.download_button(
             label="📥 Télécharger le tableau en Excel",
-            data=excel_occupation,
+            data=excel_occ,
             file_name=f"occupation_postes_{datetime.now().strftime('%Y-%m-%d')}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
