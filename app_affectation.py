@@ -61,6 +61,112 @@ if matrice_file is not None:
         places_restantes = capacite.copy()
 
         # =========================
+        # FONCTION D'AFFECTATION
+        # =========================
+
+        def calcul_affectation(blocages=None):
+
+            if blocages is None:
+                blocages = {}
+
+            places_restantes = capacite.copy()
+
+            affectation = {}
+            non_affectes = []
+
+            # ----------------------
+            # Personnes bloquées
+            # ----------------------
+
+            for personne, poste in blocages.items():
+
+                if (
+                    personne in personnes
+                    and poste in postes.values
+                    and matching.loc[poste, personne] == 0
+                    and places_restantes.get(poste, 0) > 0
+                ):
+
+                    affectation[personne] = poste
+                    places_restantes[poste] -= 1
+
+            # ----------------------
+            # Affectation standard
+            # ----------------------
+
+            for p in personnes_tries:
+
+                if p in affectation:
+                    continue
+
+                compatibles = [
+                    poste for poste in postes
+                    if matching.loc[poste, p] == 0
+                    and places_restantes.get(poste, 0) > 0
+                ]
+
+                if compatibles:
+
+                    poste = compatibles[0]
+
+                    affectation[p] = poste
+                    places_restantes[poste] -= 1
+
+                else:
+
+                    # Tentative swap
+                    all_compat = get_postes_possibles(p)
+
+                    placé = False
+
+                    for poste in all_compat:
+
+                        occupantes = [
+                            pers for pers, pos in affectation.items()
+                            if pos == poste
+                        ]
+
+                        for occ in occupantes:
+
+                            # ne jamais déplacer une personne bloquée
+                            if occ in blocages:
+                                continue
+
+                            alternatives = [
+                                alt for alt in postes
+                                if (
+                                    alt != poste
+                                    and places_restantes.get(alt, 0) > 0
+                                    and matching.loc[alt, occ] == 0
+                                )
+                            ]
+
+                            if alternatives:
+
+                                new_poste = alternatives[0]
+
+                                affectation[occ] = new_poste
+
+                                places_restantes[new_poste] -= 1
+                                places_restantes[poste] += 1
+
+                                affectation[p] = poste
+                                places_restantes[poste] -= 1
+
+                                placé = True
+                                break
+
+                        if placé:
+                            break
+
+                    if not placé:
+
+                        affectation[p] = None
+                        non_affectes.append(p)
+
+            return affectation
+
+        # =========================
         # FONCTIONS MÉTIER
         # =========================
         def get_postes_possibles(personne):
@@ -78,64 +184,7 @@ if matrice_file is not None:
         # =========================
         # AFFECTATION
         # =========================
-        affectation = {}
-        non_affectes = []
-
-        for p in personnes_tries:
-
-            compatibles = [
-                poste for poste in postes
-                if matching.loc[poste, p] == 0
-                and places_restantes.get(poste, 0) > 0
-            ]
-
-            if compatibles:
-                poste = compatibles[0]
-                affectation[p] = poste
-                places_restantes[poste] -= 1
-
-            else:
-                # 🔁 tentative swap
-                all_compat = get_postes_possibles(p)
-                placé = False
-
-                for poste in all_compat:
-
-                    occupantes = [
-                        pers for pers, pos in affectation.items()
-                        if pos == poste
-                    ]
-
-                    for occ in occupantes:
-
-                        alternatives = [
-                            alt for alt in postes
-                            if (
-                                alt != poste
-                                and places_restantes.get(alt, 0) > 0
-                                and matching.loc[alt, occ] == 0
-                            )
-                        ]
-
-                        if alternatives:
-                            new_poste = alternatives[0]
-
-                            affectation[occ] = new_poste
-                            places_restantes[new_poste] -= 1
-                            places_restantes[poste] += 1
-
-                            affectation[p] = poste
-                            places_restantes[poste] -= 1
-
-                            placé = True
-                            break
-
-                    if placé:
-                        break
-
-                if not placé:
-                    affectation[p] = None
-                    non_affectes.append(p)
+        affectation = calcul_affectation()
 
         # =========================
         # TABLEAU RESULTAT
@@ -318,55 +367,172 @@ if matrice_file is not None:
         st.dataframe(analyse)
 
         # =========================
-        # PRIORISATION ERGONOMIQUE
+        # SIMULATION AVEC BLOCAGES
         # =========================
-        st.subheader("🧍 Classement des postes à assouplir")
 
-        nb_personnes_test = st.slider("Nb de personnes à tester", 1, 20, 5)
+        st.subheader("🔒 Simulation avec personnes bloquées")
 
-        resultats_ergo = []
+        blocage_file = st.file_uploader(
+            "Charger le fichier de blocage",
+            type=["xlsx"],
+            key="blocage"
+        )
 
-        non_aff = df[
-            (df["poste"].isna()) &
-            (df["diagnostic"] == "🔄 Conflit d'affectation")
-        ].index.tolist()
+        if blocage_file is not None:
 
-        for poste_test in postes:
+            # -------------------------
+            # Lecture du fichier
+            # -------------------------
 
-            matching_sim = matching.copy()
-            personnes_test = random.sample(non_aff, min(nb_personnes_test, len(non_aff)))
+            df_blocage = pd.read_excel(blocage_file)
 
-            for p in personnes_test:
-                if poste_test in matching_sim.index:
-                    matching_sim.loc[poste_test, p] = 0
+            st.write("### Personnes bloquées chargées")
+            st.dataframe(df_blocage)
 
-            places_restantes_sim = capacite.copy()
-            affectation_sim = {}
+            blocages = dict(
+                zip(
+                    df_blocage["Matricule"],
+                    df_blocage["poste bloqué"]
+                )
+            )
 
-            for p in personnes_tries:
-                compatibles = [
-                    poste for poste in postes
-                    if matching_sim.loc[poste, p] == 0
-                    and places_restantes_sim.get(poste, 0) > 0
-                ]
+            # -------------------------
+            # Vérification
+            # -------------------------
 
-                if compatibles:
-                    affectation_sim[p] = compatibles[0]
-                    places_restantes_sim[compatibles[0]] -= 1
-                else:
-                    affectation_sim[p] = None
+            blocages_valides = {}
 
-            nb_avant = df["poste"].notna().sum()
-            nb_apres = sum(v is not None for v in affectation_sim.values())
+            for personne, poste in blocages.items():
 
-            resultats_ergo.append({
-                "Poste": poste_test,
-                "Gain personnes": nb_apres - nb_avant
+                if personne not in personnes:
+                    st.warning(f"{personne} absent de la matrice")
+                    continue
+
+                if poste not in postes.values:
+                    st.warning(f"{poste} absent de la matrice")
+                    continue
+
+                if matching.loc[poste, personne] != 0:
+                    st.warning(
+                        f"{personne} incompatible avec {poste}"
+                    )
+                    continue
+
+                blocages_valides[personne] = poste
+
+            blocages = blocages_valides
+
+            # -------------------------
+            # Recalcul avec blocages
+            # -------------------------
+
+            affectation_bloquee = calcul_affectation(blocages)
+
+            df_bloque = pd.DataFrame.from_dict(
+                affectation_bloquee,
+                orient="index",
+                columns=["poste"]
+            )
+
+            # -------------------------
+            # Comparaison
+            # -------------------------
+
+            comparaison = pd.DataFrame({
+                "Poste initial": df["poste"],
+                "Poste bloqué": df_bloque["poste"]
             })
 
-        df_ergo = pd.DataFrame(resultats_ergo).sort_values("Gain personnes", ascending=False)
+            comparaison["Changement"] = (
+                comparaison["Poste initial"]
+                != comparaison["Poste bloqué"]
+            )
 
-        st.dataframe(df_ergo)
+            comparaison["Bloqué"] = comparaison.index.isin(
+                blocages.keys()
+            )
+
+            score_initial = df["poste"].notna().sum()
+            score_bloque = df_bloque["poste"].notna().sum()
+
+            nb_changements = (
+                comparaison["Changement"] == True
+            ).sum()
+
+            nb_blocages = len(blocages)
+
+            # -------------------------
+            # KPI
+            # -------------------------
+
+            st.subheader("📊 Comparaison des scénarios")
+
+            col1, col2, col3, col4, col5 = st.columns(5)
+
+            col1.metric(
+                "Affectés avant",
+                int(score_initial)
+            )
+
+            col2.metric(
+                "Affectés après",
+                int(score_bloque)
+            )
+
+            col3.metric(
+                "Impact",
+                int(score_bloque - score_initial)
+            )
+
+            col4.metric(
+                "Personnes bloquées",
+                int(nb_blocages)
+            )
+
+            col5.metric(
+                "Personnes déplacées",
+                int(nb_changements)
+            )
+
+            # -------------------------
+            # Tableau complet
+            # -------------------------
+
+            comparaison = comparaison.reset_index()
+
+            comparaison.rename(
+                columns={
+                    "index": "Matricule"
+                },
+                inplace=True
+            )
+
+            st.subheader("🔄 Comparaison complète")
+
+            st.dataframe(comparaison)
+
+            # -------------------------
+            # Changements uniquement
+            # -------------------------
+
+            st.subheader("⚠️ Affectations modifiées")
+
+            changements = comparaison[
+                comparaison["Changement"] == True
+            ]
+
+            st.dataframe(changements)
+
+            # -------------------------
+            # Export Excel
+            # -------------------------
+
+            st.download_button(
+                "📥 Télécharger la comparaison",
+                to_excel(comparaison),
+                "comparaison_blocages.xlsx"
+            )
+
 
 else:
     st.info("👉 Charge ta matrice pour commencer")
