@@ -511,6 +511,49 @@ if matrice_file is not None:
                 file_name=f"affectations_avec_blocages_{datetime.now().strftime('%Y-%m-%d')}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
+            
+            st.subheader("❌ Non affectés après blocages")
+            st.dataframe(df_non_affectes_blocage)
+
+            # -------------------------
+            # NON AFFECTES APRES BLOCAGES
+            # -------------------------
+
+            df_non_affectes_blocage = df_bloque[
+                df_bloque["poste"].isna()
+            ].copy()
+
+            df_non_affectes_blocage = (
+                df_non_affectes_blocage
+                .reset_index()
+            )
+
+            df_non_affectes_blocage = (
+                df_non_affectes_blocage.rename(
+                    columns={
+                        "index": "Matricule"
+                    }
+                )
+            )
+
+            # Colonnes identiques à l'export non affectés initial
+
+            df_non_affectes_blocage = (
+                df_non_affectes_blocage[
+                    [
+                        "Matricule",
+                        "postes_possibles",
+                        "nb_postes_possibles"
+                    ]
+                ]
+            )
+
+            st.download_button(
+                label="📥 Télécharger les non affectés avec blocages",
+                data=to_excel(df_non_affectes_blocage),
+                file_name=f"non_affectes_avec_blocages_{datetime.now().strftime('%Y-%m-%d')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
             # -------------------------
             # COMPARAISON
