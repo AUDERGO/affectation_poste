@@ -512,8 +512,6 @@ if matrice_file is not None:
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
             
-            st.subheader("❌ Non affectés après blocages")
-            st.dataframe(df_non_affectes_blocage)
 
             # -------------------------
             # NON AFFECTES APRES BLOCAGES
@@ -548,6 +546,9 @@ if matrice_file is not None:
                 ]
             )
 
+            st.subheader("❌ Non affectés après blocages")
+            st.dataframe(df_non_affectes_blocage)
+            
             st.download_button(
                 label="📥 Télécharger les non affectés avec blocages",
                 data=to_excel(df_non_affectes_blocage),
