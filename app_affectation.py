@@ -508,7 +508,7 @@ if matrice_file is not None:
             st.download_button(
                 label="📥 Télécharger les affectations avec blocages",
                 data=to_excel(export_blocage),
-                file_name="affectations_avec_blocages.xlsx",
+                file_name=f"affectations_avec_blocages_{datetime.now().strftime('%Y-%m-%d')}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
 
@@ -600,7 +600,7 @@ if matrice_file is not None:
             st.download_button(
                 label="📥 Télécharger la comparaison",
                 data=to_excel(comparaison),
-                file_name="comparaison_blocages.xlsx",
+                file_name=f"comparaison_blocages_{datetime.now().strftime('%Y-%m-%d')}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )   
 
