@@ -397,7 +397,7 @@ if matrice_file is not None:
             )
 
             # -------------------------
-            # Vérification
+            # Vérification simple
             # -------------------------
 
             blocages_valides = {}
@@ -412,21 +412,23 @@ if matrice_file is not None:
                     st.warning(f"{poste} absent de la matrice")
                     continue
 
-                if matching.loc[poste, personne] != 0:
-                    st.warning(
-                        f"{personne} incompatible avec {poste}"
-                    )
-                    continue
+                # IMPORTANT :
+                # on ne vérifie PAS le matching
+                # le blocage est forcé
 
                 blocages_valides[personne] = poste
 
             blocages = blocages_valides
 
             # -------------------------
-            # Recalcul avec blocages
+            # Recalcul complet
             # -------------------------
 
             affectation_bloquee = calcul_affectation(blocages)
+
+            # -------------------------
+            # Création du dataframe
+            # -------------------------
 
             df_bloque = pd.DataFrame.from_dict(
                 affectation_bloquee,
@@ -434,8 +436,84 @@ if matrice_file is not None:
                 columns=["poste"]
             )
 
+            # mêmes colonnes que le tableau principal
+
+            df_bloque["postes_possibles_list"] = (
+                df_bloque.index.map(get_postes_possibles)
+            )
+
+            df_bloque["nb_postes_possibles"] = (
+                df_bloque["postes_possibles_list"]
+                .apply(len)
+            )
+
+            df_bloque["postes_possibles"] = (
+                df_bloque["postes_possibles_list"]
+                .apply(lambda x: " | ".join(x))
+            )
+
+            df_bloque["blocage"] = (
+                df_bloque.index.isin(blocages.keys())
+            )
+
             # -------------------------
-            # Comparaison
+            # RESULTAT PRINCIPAL
+            # -------------------------
+
+            st.subheader("✅ Résultat avec blocages")
+
+            df_bloque_affiches = (
+                df_bloque[df_bloque["poste"].notna()]
+                .reset_index()
+            )
+
+            df_bloque_affiches = df_bloque_affiches.rename(
+                columns={
+                    "index": "Matricule",
+                    "poste": "Poste affecté",
+                    "nb_postes_possibles": "Nb options",
+                    "postes_possibles": "Postes possibles",
+                    "blocage": "Blocage"
+                }
+            )
+
+            st.dataframe(
+                df_bloque_affiches[
+                    [
+                        "Matricule",
+                        "Poste affecté",
+                        "Blocage",
+                        "Nb options",
+                        "Postes possibles"
+                    ]
+                ]
+            )
+
+            # -------------------------
+            # EXPORT EXCEL
+            # -------------------------
+
+            export_blocage = (
+                df_bloque_affiches[
+                    [
+                        "Matricule",
+                        "Poste affecté",
+                        "Blocage",
+                        "Nb options",
+                        "Postes possibles"
+                    ]
+                ]
+            )
+
+            st.download_button(
+                label="📥 Télécharger les affectations avec blocages",
+                data=to_excel(export_blocage),
+                file_name="affectations_avec_blocages.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+
+            # -------------------------
+            # COMPARAISON
             # -------------------------
 
             comparaison = pd.DataFrame({
@@ -448,8 +526,8 @@ if matrice_file is not None:
                 != comparaison["Poste bloqué"]
             )
 
-            comparaison["Bloqué"] = comparaison.index.isin(
-                blocages.keys()
+            comparaison["Bloqué"] = (
+                comparaison.index.isin(blocages.keys())
             )
 
             score_initial = df["poste"].notna().sum()
@@ -495,7 +573,7 @@ if matrice_file is not None:
             )
 
             # -------------------------
-            # Tableau complet
+            # DETAIL DES CHANGEMENTS
             # -------------------------
 
             comparaison = comparaison.reset_index()
@@ -507,14 +585,6 @@ if matrice_file is not None:
                 inplace=True
             )
 
-            st.subheader("🔄 Comparaison complète")
-
-            st.dataframe(comparaison)
-
-            # -------------------------
-            # Changements uniquement
-            # -------------------------
-
             st.subheader("⚠️ Affectations modifiées")
 
             changements = comparaison[
@@ -524,14 +594,15 @@ if matrice_file is not None:
             st.dataframe(changements)
 
             # -------------------------
-            # Export Excel
+            # EXPORT COMPARAISON
             # -------------------------
 
             st.download_button(
-                "📥 Télécharger la comparaison",
-                to_excel(comparaison),
-                "comparaison_blocages.xlsx"
-            )
+                label="📥 Télécharger la comparaison",
+                data=to_excel(comparaison),
+                file_name="comparaison_blocages.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )   
 
 
 else:
