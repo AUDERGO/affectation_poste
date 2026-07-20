@@ -608,7 +608,7 @@ if matrice_file is not None:
 
                 if len(postes_compatibles) == 0:
 
-                    causes.append("❌ Aucun poste compatible")
+                    causes.append("Aucun poste compatible")
                     details.append("")
 
                 else:
@@ -644,7 +644,7 @@ if matrice_file is not None:
                     else:
 
                         causes.append(
-                            "Plus de place disponible"
+                            "Postes compatibles saturés"
                         )
 
                     details.append(
