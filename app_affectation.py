@@ -431,6 +431,36 @@ if matrice_file is not None:
 
             affectation_bloquee = calcul_affectation(blocages)
 
+            occupation_blocages = (
+                pd.Series(blocages)
+                .value_counts()
+                .reset_index()
+            )
+
+            occupation_blocages.columns = [
+                "Poste",
+                "Bloqués"
+            ]
+
+            occupation_blocages["Capacité"] = (
+                occupation_blocages["Poste"]
+                .map(capacite)
+            )
+
+            occupation_blocages["Places restantes"] = (
+                occupation_blocages["Capacité"]
+                - occupation_blocages["Bloqués"]
+            )
+
+            st.subheader("🔒 Impact des blocages")
+
+            st.dataframe(
+                occupation_blocages.sort_values(
+                    "Bloqués",
+                    ascending=False
+                )
+            )
+
             # -------------------------
             # Création du dataframe
             # -------------------------
@@ -586,6 +616,126 @@ if matrice_file is not None:
                 file_name=f"non_affectes_avec_blocages_{datetime.now().strftime('%Y-%m-%d')}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
+
+            # =========================
+            # CAPACITES APRES BLOCAGES
+            # =========================
+
+            capacites_postes = []
+
+            for poste, capacite_poste in capacite.items():
+
+                nb_affectes = sum(
+                    1
+                    for p in affectation_bloquee.values()
+                    if p == poste
+                )
+
+                capacites_postes.append({
+                    "Poste": poste,
+                    "Capacité": capacite_poste,
+                    "Occupés": nb_affectes,
+                    "Places restantes": capacite_poste - nb_affectes
+                })
+
+            df_capacites = pd.DataFrame(capacites_postes)
+
+            st.subheader("🏭 Capacités après blocages")
+
+            st.dataframe(
+                df_capacites.sort_values(
+                    "Places restantes"
+                )
+            )
+
+            # =========================
+            # ANALYSE DETAILLEE NON AFFECTES
+            # =========================
+
+            def diagnostic_non_affecte(personne):
+
+                postes_compatibles = get_postes_possibles(personne)
+
+                # aucun poste compatible
+                if len(postes_compatibles) == 0:
+                    return (
+                        "❌ Aucun poste compatible",
+                        ""
+                    )
+
+                details = []
+
+                places_disponibles = False
+
+                for poste in postes_compatibles:
+
+                    capacite_poste = capacite.get(poste, 0)
+
+                    nb_affectes = sum(
+                        1
+                        for p in affectation_bloquee.values()
+                        if p == poste
+                    )
+
+                    reste = capacite_poste - nb_affectes
+
+                    details.append(
+                        f"{poste} (reste={reste})"
+                    )
+
+                    if reste > 0:
+                        places_disponibles = True
+
+                if not places_disponibles:
+                    return (
+                        "⚠️ Tous les postes compatibles sont pleins",
+                        " | ".join(details)
+                    )
+
+                return (
+                    "🔄 Conflit d'affectation",
+                    " | ".join(details)
+                )
+
+
+            analyse_non_affectes = []
+
+            for personne in df_non_affectes_blocage["Matricule"]:
+
+                cause, detail = diagnostic_non_affecte(
+                    personne
+                )
+
+                analyse_non_affectes.append({
+                    "Matricule": personne,
+                    "Cause": cause,
+                    "Etat des postes compatibles": detail
+                })
+
+            df_analyse_non_affectes = pd.DataFrame(
+                analyse_non_affectes
+            )
+
+            st.subheader(
+                "🔍 Pourquoi ces personnes ne sont pas affectées ?"
+            )
+
+            st.dataframe(df_analyse_non_affectes)
+
+            st.subheader("📊 Synthèse des causes")
+
+            resume_causes = (
+                df_analyse_non_affectes["Cause"]
+                .value_counts()
+                .reset_index()
+            )
+
+            resume_causes.columns = [
+                "Cause",
+                "Nombre"
+            ]
+
+            st.dataframe(resume_causes)
 
             # -------------------------
             # COMPARAISON
