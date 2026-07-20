@@ -595,14 +595,75 @@ if matrice_file is not None:
                 )
             )
 
-            # Colonnes identiques à l'export non affectés initial
+            # =========================
+            # ANALYSE NON AFFECTES
+            # =========================
+
+            causes = []
+            details = []
+
+            for personne in df_non_affectes_blocage["Matricule"]:
+
+                postes_compatibles = get_postes_possibles(personne)
+
+                if len(postes_compatibles) == 0:
+
+                    causes.append("❌ Aucun poste compatible")
+                    details.append("")
+
+                else:
+
+                    infos_postes = []
+                    place_disponible = False
+
+                    for poste in postes_compatibles:
+
+                        capacite_poste = capacite.get(poste, 0)
+
+                        nb_affectes = sum(
+                            1
+                            for p in affectation_bloquee.values()
+                            if p == poste
+                        )
+
+                        reste = capacite_poste - nb_affectes
+
+                        infos_postes.append(
+                            f"{poste} (reste={reste})"
+                        )
+
+                        if reste > 0:
+                            place_disponible = True
+
+                    if place_disponible:
+
+                        causes.append(
+                            "Conflit d'affectation"
+                        )
+
+                    else:
+
+                        causes.append(
+                            "Plus de place disponible"
+                        )
+
+                    details.append(
+                        " | ".join(infos_postes)
+                    )
+
+            df_non_affectes_blocage["Cause"] = causes
+            df_non_affectes_blocage["Détail"] = details
+
+            # Colonnes affichées/exportées
 
             df_non_affectes_blocage = (
                 df_non_affectes_blocage[
                     [
                         "Matricule",
                         "postes_possibles",
-                        "nb_postes_possibles"
+                        "nb_postes_possibles",
+                        "Cause",
+                        "Détail"
                     ]
                 ]
             )
@@ -648,94 +709,6 @@ if matrice_file is not None:
                 )
             )
 
-            # =========================
-            # ANALYSE DETAILLEE NON AFFECTES
-            # =========================
-
-            def diagnostic_non_affecte(personne):
-
-                postes_compatibles = get_postes_possibles(personne)
-
-                # aucun poste compatible
-                if len(postes_compatibles) == 0:
-                    return (
-                        "❌ Aucun poste compatible",
-                        ""
-                    )
-
-                details = []
-
-                places_disponibles = False
-
-                for poste in postes_compatibles:
-
-                    capacite_poste = capacite.get(poste, 0)
-
-                    nb_affectes = sum(
-                        1
-                        for p in affectation_bloquee.values()
-                        if p == poste
-                    )
-
-                    reste = capacite_poste - nb_affectes
-
-                    details.append(
-                        f"{poste} (reste={reste})"
-                    )
-
-                    if reste > 0:
-                        places_disponibles = True
-
-                if not places_disponibles:
-                    return (
-                        "⚠️ Tous les postes compatibles sont pleins",
-                        " | ".join(details)
-                    )
-
-                return (
-                    "🔄 Conflit d'affectation",
-                    " | ".join(details)
-                )
-
-
-            analyse_non_affectes = []
-
-            for personne in df_non_affectes_blocage["Matricule"]:
-
-                cause, detail = diagnostic_non_affecte(
-                    personne
-                )
-
-                analyse_non_affectes.append({
-                    "Matricule": personne,
-                    "Cause": cause,
-                    "Etat des postes compatibles": detail
-                })
-
-            df_analyse_non_affectes = pd.DataFrame(
-                analyse_non_affectes
-            )
-
-            st.subheader(
-                "🔍 Pourquoi ces personnes ne sont pas affectées ?"
-            )
-
-            st.dataframe(df_analyse_non_affectes)
-
-            st.subheader("📊 Synthèse des causes")
-
-            resume_causes = (
-                df_analyse_non_affectes["Cause"]
-                .value_counts()
-                .reset_index()
-            )
-
-            resume_causes.columns = [
-                "Cause",
-                "Nombre"
-            ]
-
-            st.dataframe(resume_causes)
 
             # -------------------------
             # COMPARAISON
