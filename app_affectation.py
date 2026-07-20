@@ -430,8 +430,8 @@ if matrice_file is not None:
             # -------------------------
 
             affectation_bloquee = calcul_affectation(blocages)
-
-          occupation_blocages = []
+            
+            occupation_blocages = []
 
             for poste, capacite_poste in capacite.items():
 
