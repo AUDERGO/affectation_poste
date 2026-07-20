@@ -40,9 +40,7 @@ if matrice_file is not None:
     # ✅ STRUCTURE
     postes = matrice["Poste"].astype(str)
     matching = matrice.set_index("Poste")
-    matching.columns = matching.columns.astype(str).str.strip()
-    matching.index = matching.index.astype(str).str.strip()
-    personnes = [str(x).strip() for x in matching.columns]
+    personnes = list(matching.columns)
 
     st.success("✅ Matrice chargée")
 
@@ -96,10 +94,6 @@ if matrice_file is not None:
                     places_restantes[poste] = 0
 
                 places_restantes[poste] -= 1
-
-                st.write(
-                    f"🔒 Blocage appliqué : {personne} → {poste}"
-                )
            
             # ----------------------
             # Affectation standard
