@@ -430,7 +430,7 @@ if matrice_file is not None:
             # -------------------------
 
             affectation_bloquee = calcul_affectation(blocages)
-            
+
             occupation_blocages = (
                 pd.Series(blocages)
                 .value_counts()
@@ -442,23 +442,6 @@ if matrice_file is not None:
                 "Bloqués"
             ]
 
-            # Ajout des postes absents du fichier de blocage
-            postes_absents = [
-                p
-                for p in capacite.keys()
-                if p not in occupation_blocages["Poste"].values
-            ]
-
-            if postes_absents:
-
-                occupation_blocages = pd.concat([
-                    occupation_blocages,
-                    pd.DataFrame({
-                        "Poste": postes_absents,
-                        "Bloqués": 0
-                    })
-                ], ignore_index=True)
-
             occupation_blocages["Capacité"] = (
                 occupation_blocages["Poste"]
                 .map(capacite)
@@ -469,11 +452,15 @@ if matrice_file is not None:
                 - occupation_blocages["Bloqués"]
             )
 
-            occupation_blocages = occupation_blocages.sort_values(
-                "Bloqués",
-                ascending=False
-            ).reset_index(drop=True)
+            st.subheader("🔒 Impact des blocages")
 
+            st.dataframe(
+                occupation_blocages.sort_values(
+                    "Bloqués",
+                    ascending=False
+                )
+            )
+            
             # ==========================
             # TELECHARGEMENT EXCEL
             # ==========================
