@@ -464,15 +464,12 @@ if matrice_file is not None:
 
                 if personne in matching.columns and poste in matching.values:
 
+                    personne_ok = personne in matching.columns
+                    poste_ok = poste in postes.values
+                    
                     st.write(
-                        f"{personne} -> {poste} | matching = "
-                        f"{matching.loc[poste, personne]}"
-                    )
-
-                else:
-
-                    st.warning(
-                        f"{personne} ou {poste} introuvable"
+                        f"{personne} | personne_ok={personne_ok} | "
+                        f"poste_ok={poste_ok} | poste={poste}"
                     )
 
 
