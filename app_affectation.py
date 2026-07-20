@@ -600,7 +600,6 @@ if matrice_file is not None:
             # =========================
 
             causes = []
-            details = []
 
             for personne in df_non_affectes_blocage["Matricule"]:
 
@@ -609,7 +608,6 @@ if matrice_file is not None:
                 if len(postes_compatibles) == 0:
 
                     causes.append("Aucun poste compatible")
-                    details.append("")
 
                 else:
 
@@ -647,12 +645,7 @@ if matrice_file is not None:
                             "Postes compatibles saturés"
                         )
 
-                    details.append(
-                        " | ".join(infos_postes)
-                    )
-
             df_non_affectes_blocage["Cause"] = causes
-            df_non_affectes_blocage["Détail"] = details
 
             # Colonnes affichées/exportées
 
@@ -660,10 +653,9 @@ if matrice_file is not None:
                 df_non_affectes_blocage[
                     [
                         "Matricule",
-                        "postes_possibles",
                         "nb_postes_possibles",
-                        "Cause",
-                        "Détail"
+                        "postes_possibles",
+                        "Cause"
                     ]
                 ]
             )
