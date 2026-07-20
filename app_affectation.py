@@ -437,16 +437,6 @@ if matrice_file is not None:
 
             affectation_bloquee = calcul_affectation(blocages)
 
-            st.write("### Contrôle final des personnes bloquées")
-
-            for personne in blocages:
-
-                st.write(
-                    personne,
-                    "=>",
-                    affectation_bloquee.get(personne)
-                )
-
             # -------------------------
             # Création du dataframe
             # -------------------------
