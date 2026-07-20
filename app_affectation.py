@@ -431,30 +431,47 @@ if matrice_file is not None:
 
             affectation_bloquee = calcul_affectation(blocages)
             
-            occupation_blocages = []
+            occupation_blocages = (
+                pd.Series(blocages)
+                .value_counts()
+                .reset_index()
+            )
 
-            for poste, capacite_poste in capacite.items():
+            occupation_blocages.columns = [
+                "Poste",
+                "Bloqués"
+            ]
 
-                nb_blocages = sum(
-                    1
-                    for p in blocages.values()
-                    if p == poste
-                )
+            # Ajout des postes absents du fichier de blocage
+            postes_absents = [
+                p
+                for p in capacite.keys()
+                if p not in occupation_blocages["Poste"].values
+            ]
 
-                occupation_blocages.append({
-                    "Poste": poste,
-                    "Bloqués": nb_blocages,
-                    "Capacité": capacite_poste,
-                    "Places restantes": capacite_poste - nb_blocages
-                })
+            if postes_absents:
 
-            occupation_blocages = pd.DataFrame(
-                occupation_blocages
+                occupation_blocages = pd.concat([
+                    occupation_blocages,
+                    pd.DataFrame({
+                        "Poste": postes_absents,
+                        "Bloqués": 0
+                    })
+                ], ignore_index=True)
+
+            occupation_blocages["Capacité"] = (
+                occupation_blocages["Poste"]
+                .map(capacite)
+            )
+
+            occupation_blocages["Places restantes"] = (
+                occupation_blocages["Capacité"]
+                - occupation_blocages["Bloqués"]
             )
 
             occupation_blocages = occupation_blocages.sort_values(
-                ["Bloqués", "Poste"],
-                ascending=[False, True]
+                "Bloqués",
+                ascending=False
             ).reset_index(drop=True)
 
             # ==========================
