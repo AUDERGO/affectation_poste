@@ -40,7 +40,9 @@ if matrice_file is not None:
     # ✅ STRUCTURE
     postes = matrice["Poste"].astype(str)
     matching = matrice.set_index("Poste")
-    personnes = list(matching.columns)
+    matching.columns = matching.columns.astype(str).str.strip()
+    matching.index = matching.index.astype(str).str.strip()
+    personnes = [str(x).strip() for x in matching.columns]
 
     st.success("✅ Matrice chargée")
 
@@ -80,16 +82,25 @@ if matrice_file is not None:
 
             for personne, poste in blocages.items():
 
-                if (
-                    personne in personnes
-                    and poste in postes.values
-                    and matching.loc[poste, personne] == 0
-                    and places_restantes.get(poste, 0) > 0
-                ):
+                if personne not in personnes:
+                    continue
 
-                    affectation[personne] = poste
-                    places_restantes[poste] -= 1
+                if poste not in postes.values:
+                    continue
 
+                # Forçage absolu de l'affectation
+                affectation[personne] = poste
+
+                # Décompte capacité
+                if poste not in places_restantes:
+                    places_restantes[poste] = 0
+
+                places_restantes[poste] -= 1
+
+                st.write(
+                    f"🔒 Blocage appliqué : {personne} → {poste}"
+                )
+           
             # ----------------------
             # Affectation standard
             # ----------------------
@@ -391,8 +402,8 @@ if matrice_file is not None:
 
             blocages = dict(
                 zip(
-                    df_blocage["Matricule"],
-                    df_blocage["poste bloqué"]
+                    df_blocage["Matricule"].astype(str).str.strip(),
+                    df_blocage["poste bloqué"].astype(str).str.strip()
                 )
             )
 
@@ -426,6 +437,16 @@ if matrice_file is not None:
 
             affectation_bloquee = calcul_affectation(blocages)
 
+            st.write("### Contrôle final des personnes bloquées")
+
+            for personne in blocages:
+
+                st.write(
+                    personne,
+                    "=>",
+                    affectation_bloquee.get(personne)
+                )
+
             # -------------------------
             # Création du dataframe
             # -------------------------
@@ -437,10 +458,39 @@ if matrice_file is not None:
             )
 
             # mêmes colonnes que le tableau principal
+            
+            def get_postes_possibles_blocage(personne):
 
+                if personne in blocages:
+                    return [blocages[personne]]
+
+                return [
+                    poste
+                    for poste in postes
+                    if matching.loc[poste, personne] == 0
+                ]
+            
             df_bloque["postes_possibles_list"] = (
-                df_bloque.index.map(get_postes_possibles)
+                df_bloque.index.map(get_postes_possibles_blocage)
             )
+
+            st.write("### Vérification des blocages")
+
+            for personne, poste in blocages.items():
+
+                if personne in matching.columns and poste in matching.values:
+
+                    st.write(
+                        f"{personne} -> {poste} | matching = "
+                        f"{matching.loc[poste, personne]}"
+                    )
+
+                else:
+
+                    st.warning(
+                        f"{personne} ou {poste} introuvable"
+                    )
+
 
             df_bloque["nb_postes_possibles"] = (
                 df_bloque["postes_possibles_list"]
