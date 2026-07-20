@@ -461,6 +461,24 @@ if matrice_file is not None:
                 )
             )
 
+            # ==========================
+            # TELECHARGEMENT EXCEL
+            # ==========================
+
+            excel_blocages = to_excel(
+                occupation_blocages.sort_values(
+                    "Bloqués",
+                    ascending=False
+                )
+            )
+
+            st.download_button(
+                label="📥 Télécharger l'impact des blocages",
+                data=excel_blocages,
+                file_name=f"impact_blocages_occupation_{datetime.now().strftime('%Y-%m-%d')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+
             # -------------------------
             # Création du dataframe
             # -------------------------
