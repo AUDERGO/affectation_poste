@@ -30,14 +30,22 @@ if matrice_file is not None:
     else:
         matrice = pd.read_excel(matrice_file)
 
-    # ✅ IMPORTANT : doit être dans le if
     matrice = matrice.rename(columns={"index": "Poste"})
 
-    # ✅ DEBUG VISUEL (ajoute ça pour vérifier)
+    # Correspondance matricule -> nom
+    matricules_noms = {}
+
+    if "Nom" in matrice.columns and "Matricule" in matrice.columns:
+        matricules_noms = dict(
+            zip(
+                matrice["Matricule"],
+                matrice["Nom"]
+            )
+        )
+
     st.write("### Aperçu matrice")
     st.dataframe(matrice.head())
 
-    # ✅ STRUCTURE
     postes = matrice["Poste"].astype(str)
     matching = matrice.set_index("Poste")
     personnes = list(matching.columns)
@@ -256,13 +264,19 @@ if matrice_file is not None:
         df_export = df_export.reset_index()
         df_export = df_export.rename(columns={"index": "Matricule"})
         
+        df_export["Nom"] = (
+            df_export["Matricule"]
+            .map(matricules_noms)
+        )
+
         df_export = df_export[[
             "Matricule",
+            "Nom",
             "poste",
             "postes_possibles",
             "nb_postes_possibles",
         ]]
-
+        
         excel_data = to_excel(df_export)
 
         st.download_button(
@@ -279,9 +293,13 @@ if matrice_file is not None:
         df_non_affectes = df_non_affectes.reset_index()
         df_non_affectes = df_non_affectes.rename(columns={"index": "Matricule"})
 
-        
+        df_non_affectes["Nom"] = (
+            df_non_affectes["Matricule"]
+            .map(matricules_noms)
+        )
         df_non_affectes = df_non_affectes[[
             "Matricule",
+            "Nom",
             "postes_possibles",
             "nb_postes_possibles",
             "diagnostic"
@@ -572,17 +590,20 @@ if matrice_file is not None:
             # EXPORT EXCEL
             # -------------------------
 
-            export_blocage = (
-                df_bloque_affiches[
-                    [
-                        "Matricule",
-                        "Poste affecté",
-                        "Blocage",
-                        "Nb options",
-                        "Postes possibles"
-                    ]
-                ]
+            export_blocage["Nom"] = (
+                export_blocage["Matricule"]
+                .map(matricules_noms)
             )
+
+            export_blocage = export_blocage[[
+                "Matricule",
+                "Nom",
+                "Poste affecté",
+                "Blocage",
+                "Nb options",
+                "Postes possibles"
+            ]]
+                
 
             st.download_button(
                 label="📥 Télécharger les affectations avec blocages",
@@ -667,16 +688,18 @@ if matrice_file is not None:
 
             # Colonnes affichées/exportées
 
-            df_non_affectes_blocage = (
-                df_non_affectes_blocage[
-                    [
-                        "Matricule",
-                        "nb_postes_possibles",
-                        "postes_possibles",
-                        "Cause"
-                    ]
-                ]
+            df_non_affectes_blocage["Nom"] = (
+                df_non_affectes_blocage["Matricule"]
+                .map(matricules_noms)
             )
+
+            df_non_affectes_blocage = df_non_affectes_blocage[[
+                "Matricule",
+                "Nom",
+                "postes_possibles",
+                "nb_postes_possibles"
+            ]]
+
 
             st.subheader("❌ Non affectés après blocages")
             st.dataframe(df_non_affectes_blocage)
