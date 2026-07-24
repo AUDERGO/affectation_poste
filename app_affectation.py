@@ -51,10 +51,10 @@ if matrice_file is not None:
     cotation_file = st.file_uploader("Cotation", type=["xlsx"])
 
     st.write("## 📂 Charger situation actuelle")
-        situation_file = st.file_uploader(
-            "Situation actuelle",
-            type=["xlsx"]
-        )
+    situation_file = st.file_uploader(
+        "Situation actuelle",
+        type=["xlsx"]
+    )
 
     if cotation_file is not None and situation_file is not None:
 
