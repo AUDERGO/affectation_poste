@@ -100,6 +100,13 @@ if matrice_file is not None:
             .to_dict()
         )
 
+        nom_personne = (
+            situation
+            .set_index("Matricule")["Nom"]
+            .astype(str)
+            .to_dict()
+        )
+
         places_restantes = capacite.copy()
 
         # =========================
@@ -618,6 +625,11 @@ if matrice_file is not None:
                 columns=["poste"]
             )
 
+            df_bloque["Nom"] = (
+                df_bloque.index.astype(str)
+                .map(nom_personne)
+            )
+
             df_bloque["secteur_as_is"] = (
                 df_bloque.index.astype(str)
                 .map(secteur_personne)
@@ -712,6 +724,7 @@ if matrice_file is not None:
                 df_bloque_affiches[
                     [
                         "Matricule",
+                        "Nom",
                         "Poste affecté",
                         "Blocage",
                         "Nb options",
@@ -728,6 +741,7 @@ if matrice_file is not None:
                 df_bloque_affiches[
                     [
                         "Matricule",
+                        "Nom",
                         "Poste affecté",
                         "Blocage",
                         "Nb options",
