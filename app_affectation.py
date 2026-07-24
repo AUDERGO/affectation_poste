@@ -50,14 +50,56 @@ if matrice_file is not None:
     st.write("## 📂 Charger cotation (capacités postes)")
     cotation_file = st.file_uploader("Cotation", type=["xlsx"])
 
-    if cotation_file is not None:
+    st.write("## 📂 Charger situation actuelle")
+        situation_file = st.file_uploader(
+            "Situation actuelle",
+            type=["xlsx"]
+        )
+
+    if cotation_file is not None and situation_file is not None:
 
         cotation = pd.read_excel(cotation_file)
+
+        situation = pd.read_excel(situation_file)
+
+        situation["Matricule"] = (
+            situation["Matricule"]
+            .astype(str)
+            .str.strip()
+        )
+
+        situation["Secteur actuel"] = (
+            situation["Secteur actuel"]
+            .astype(str)
+            .str.strip()
+        )
 
         # =========================
         # CAPACITÉS
         # =========================
         capacite = cotation.set_index("Poste")["nombre de places"].to_dict()
+
+        secteur_poste = (
+            cotation
+            .set_index("Poste")["Secteur"]
+            .astype(str)
+            .to_dict()
+        )
+
+        secteurs_to_be = set(
+            cotation["Secteur"]
+            .astype(str)
+            .str.strip()
+            .unique()
+        )
+
+        secteur_personne = (
+            situation
+            .set_index("Matricule")["Secteur actuel"]
+            .astype(str)
+            .to_dict()
+        )
+
         places_restantes = capacite.copy()
 
         # =========================
@@ -110,9 +152,26 @@ if matrice_file is not None:
                     and places_restantes.get(poste, 0) > 0
                 ]
 
+                secteur_actuel = secteur_personne.get(str(p), "")
+
+                if secteur_actuel in secteurs_to_be:
+
+                    compatibles_meme_secteur = [
+                        poste
+                        for poste in compatibles
+                        if secteur_poste.get(poste, "") == secteur_actuel
+                    ]
+
+                else:
+                    compatibles_meme_secteur = []
+
                 if compatibles:
 
-                    poste = compatibles[0]
+                    if len(compatibles_meme_secteur) > 0:
+                        poste = compatibles_meme_secteur[0]
+
+                    else:
+                        poste = compatibles[0]
 
                     affectation[p] = poste
                     places_restantes[poste] -= 1
@@ -121,6 +180,29 @@ if matrice_file is not None:
 
                     # Tentative swap
                     all_compat = get_postes_possibles(p)
+
+                    secteur_p = secteur_personne.get(str(p), "")
+
+                    if secteur_p in secteurs_to_be:
+
+                        all_compat_meme_secteur = [
+                            poste
+                            for poste in all_compat
+                            if secteur_poste.get(poste, "") == secteur_p
+                        ]
+
+                    else:
+                        all_compat_meme_secteur = []
+
+                    if all_compat_meme_secteur:
+                        all_compat = (
+                            all_compat_meme_secteur
+                            + [
+                                poste
+                                for poste in all_compat
+                                if poste not in all_compat_meme_secteur
+                            ]
+                        )
 
                     placé = False
 
@@ -133,9 +215,11 @@ if matrice_file is not None:
 
                         for occ in occupantes:
 
-                            # ne jamais déplacer une personne bloquée
+                            # personne bloquée = intouchable
                             if occ in blocages:
                                 continue
+
+                            secteur_occ = secteur_personne.get(str(occ), "")
 
                             alternatives = [
                                 alt for alt in postes
@@ -146,20 +230,38 @@ if matrice_file is not None:
                                 )
                             ]
 
-                            if alternatives:
+                            # priorité secteur uniquement si le secteur existe encore dans le TO BE
+                            if secteur_occ in secteurs_to_be:
 
+                                alternatives_meme_secteur = [
+                                    alt
+                                    for alt in alternatives
+                                    if secteur_poste.get(alt, "") == secteur_occ
+                                ]
+
+                            else:
+                                alternatives_meme_secteur = []
+
+                            # choix du poste
+                            if alternatives_meme_secteur:
+                                new_poste = alternatives_meme_secteur[0]
+
+                            elif alternatives:
                                 new_poste = alternatives[0]
 
-                                affectation[occ] = new_poste
+                            else:
+                                continue
 
-                                places_restantes[new_poste] -= 1
-                                places_restantes[poste] += 1
+                            affectation[occ] = new_poste
 
-                                affectation[p] = poste
-                                places_restantes[poste] -= 1
+                            places_restantes[new_poste] -= 1
+                            places_restantes[poste] += 1
 
-                                placé = True
-                                break
+                            affectation[p] = poste
+                            places_restantes[poste] -= 1
+
+                            placé = True
+                            break
 
                         if placé:
                             break
@@ -195,6 +297,30 @@ if matrice_file is not None:
         # TABLEAU RESULTAT
         # =========================
         df = pd.DataFrame.from_dict(affectation, orient="index", columns=["poste"])
+
+        df["secteur_as_is"] = (
+            df.index.astype(str)
+            .map(secteur_personne)
+        )
+
+        df["secteur_to_be"] = (
+            df["poste"]
+            .map(secteur_poste)
+        )
+
+        df["concordance_secteur"] = (
+            df["secteur_as_is"]
+            == df["secteur_to_be"]
+        )
+
+        df["concordance_secteur"] = df[
+            "concordance_secteur"
+        ].map(
+            {
+                True: "OUI",
+                False: "NON"
+            }
+        )
 
         df["postes_possibles_list"] = df.index.map(get_postes_possibles)
         df["nb_postes_possibles"] = df["postes_possibles_list"].apply(len)
@@ -259,8 +385,11 @@ if matrice_file is not None:
         df_export = df_export[[
             "Matricule",
             "poste",
+            "secteur_as_is",
+            "secteur_to_be",
+            "concordance_secteur",
             "postes_possibles",
-            "nb_postes_possibles",
+            "nb_postes_possibles"
         ]]
 
         excel_data = to_excel(df_export)
@@ -489,6 +618,29 @@ if matrice_file is not None:
                 columns=["poste"]
             )
 
+            df_bloque["secteur_as_is"] = (
+                df_bloque.index.astype(str)
+                .map(secteur_personne)
+            )
+
+            df_bloque["secteur_to_be"] = (
+                df_bloque["poste"]
+                .map(secteur_poste)
+            )
+
+            df_bloque["concordance_secteur"] = (
+                df_bloque["secteur_as_is"]
+                == df_bloque["secteur_to_be"]
+            )
+
+            df_bloque["concordance_secteur"] = (
+                df_bloque["concordance_secteur"]
+                .map({
+                    True: "OUI",
+                    False: "NON"
+                })
+            )
+
             # mêmes colonnes que le tableau principal
             
             def get_postes_possibles_blocage(personne):
@@ -579,7 +731,10 @@ if matrice_file is not None:
                         "Poste affecté",
                         "Blocage",
                         "Nb options",
-                        "Postes possibles"
+                        "Postes possibles",
+                        "secteur_as_is",
+                        "secteur_to_be",
+                        "concordance_secteur"
                     ]
                 ]
             )
